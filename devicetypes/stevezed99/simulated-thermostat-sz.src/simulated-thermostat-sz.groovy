@@ -15,12 +15,9 @@ metadata {
 	// Automatically generated. Make future change here.
 	definition (name: "Simulated Thermostat-SZ", namespace: "stevezed99", author: "Steve") {
 		capability "Thermostat"
-		capability "Relative Humidity Measurement"
 		capability "Sensor"
 		capability "Actuator"
 
-		command "tempUp"
-		command "tempDown"
 		command "heatUp"
 		command "heatDown"
 		command "coolUp"
@@ -31,8 +28,21 @@ metadata {
         command "setThermostatOperatingState", ["string"]
 	}
 
-	tiles {
-			valueTile("temperature", "device.temperature", width: 2, height: 2) { 
+tiles (scale:2) {
+
+	 		standardTile("mode", "device.thermostatMode", width: 2, height: 2) { 
+ 				state "off", label:'', action:"switchMode", icon:"st.thermostat.heating-cooling-off" 
+				state "heat", label:'', action:"switchMode", icon:"st.thermostat.heat" 
+ 				state "cool", label:'', action:"switchMode", icon:"st.thermostat.cool" 
+			}
+            standardTile("operatingstate","device.thermostatOperatingState", width: 2, height: 2) {
+				state "idle", label:'',backgroundColor:"#ffffff",icon:"st.thermostat.heating-cooling-off"
+				state "heating", label:'',backgroundColor:"##ffa81e",icon:"st.thermostat.heating"
+				state "cooling", label:'',backgroundColor:"#269bd2",icon:"st.thermostat.cooling"
+			}
+            
+            
+			valueTile("temperature","device.temperature", width: 2, height: 2) { 
  				state("temperature", label:'${currentValue}°', unit:'F', 
  					backgroundColors:[ 
  						[value: 31, color: "#153591"], 
@@ -42,52 +52,46 @@ metadata {
  						[value: 84, color: "#f1d801"], 
  						[value: 95, color: "#d04e00"], 
  						[value: 96, color: "#bc2323"] 
- 				] 
- 			) 
-		 }
-			standardTile("operating state","device.thermostatOperatingState", inactiveLabel: false, decoration: "flat") {
-				state "idle", label:'{$currentValue}',backgroundColor:"#ffffff"
-				state "heating", label:'{$currentValue}',backgroundColor:"##ffa81e"
-				state "cooling", label:'{$currentValue}',backgroundColor:"#269bd2"
+ 					] 
+ 				) 
+		 	}
+
+			valueTile("heatingSetpoint", "device.heatingSetpoint", inactiveLabel: false, decoration: "flat") {
+				state "heat", label:'${currentValue} heat', unit: "F", backgroundColor:"#ffffff"
 			}
-	 		standardTile("mode", "device.thermostatMode", inactiveLabel: false, decoration: "flat") { 
- 				state "off", label:'', action:"switchMode", icon:"st.thermostat.heating-cooling-off" 
-				state "heat", label:'', action:"switchMode", icon:"st.thermostat.heat" 
- 				state "cool", label:'', action:"switchMode", icon:"st.thermostat.cool" 
-		} 
+            
+			standardTile("heatDown", "device.temperature", inactiveLabel: false, decoration: "flat") {
+				state "default", label:'', action:"heatDown",icon:"st.thermostat.thermostat-down"
+			}
+            
+			standardTile("heatUp", "device.temperature", inactiveLabel: false, decoration: "flat") {
+				state "default", label:'', action:"heatUp", icon:"st.thermostat.thermostat-up"
+			}
 
+			valueTile("coolingSetpoint", "device.coolingSetpoint", inactiveLabel: false, decoration: "flat") {
+				state "cool", label:'${currentValue} cool', unit:"F", backgroundColor:"#ffffff"
+			}
+            
+			standardTile("coolDown", "device.temperature", inactiveLabel: false, decoration: "flat") {
+				state "default", label:'', action:"coolDown",icon:"st.thermostat.thermostat-down"
+			}
+		
+        	standardTile("coolUp", "device.temperature", inactiveLabel: false, decoration: "flat") {
+				state "default", label:'', action:"coolUp", icon:"st.thermostat.thermostat-up"
+			}
 
-		valueTile("heatingSetpoint", "device.heatingSetpoint", inactiveLabel: false, decoration: "flat") {
-			state "heat", label:'${currentValue} heat', unit: "F", backgroundColor:"#ffffff"
-		}
-		standardTile("heatDown", "device.temperature", inactiveLabel: false, decoration: "flat") {
-			state "default", label:'', action:"heatDown",icon:"st.thermostat.thermostat-down"
-		}
-		standardTile("heatUp", "device.temperature", inactiveLabel: false, decoration: "flat") {
-			state "default", label:'', action:"heatUp", icon:"st.thermostat.thermostat-up"
-		}
+			standardTile("fanMode", "device.thermostatFanMode", inactiveLabel: false, decoration: "flat") {
+				state "fanAuto", label:'${name}', action:"thermostat.fanOn", backgroundColor:"#ffffff"
+				state "fanOn", label:'${name}', action:"thermostat.fanAuto", backgroundColor:"#ffffff"
+			}
+         
+         	main "temperature"
+      }
 
-		valueTile("coolingSetpoint", "device.coolingSetpoint", inactiveLabel: false, decoration: "flat") {
-			state "cool", label:'${currentValue} cool', unit:"F", backgroundColor:"#ffffff"
-		}
-		standardTile("coolDown", "device.temperature", inactiveLabel: false, decoration: "flat") {
-			state "default", label:'', action:"coolDown",icon:"st.thermostat.thermostat-down"
-		}
-		standardTile("coolUp", "device.temperature", inactiveLabel: false, decoration: "flat") {
-			state "default", label:'', action:"coolUp", icon:"st.thermostat.thermostat-up"
-		}
-
-
-		standardTile("fanMode", "device.thermostatFanMode", width: 2, height: 2, inactiveLabel: false, decoration: "flat") {
-			state "fanAuto", label:'${name}', action:"thermostat.fanOn", backgroundColor:"#ffffff"
-			state "fanOn", label:'${name}', action:"thermostat.fanAuto", backgroundColor:"#ffffff"
-		}
-
-		main "temperature"
 
 		details(["temperature","operatingState","mode","heatDown","heatingSetpoint","heatUp","coolDown","coolingSetpoint", "coolUp",])
 }	
-}
+
 
 def installed() {
 	sendEvent(name: "temperature", value: 72, unit: "F")
@@ -97,14 +101,13 @@ def installed() {
 	sendEvent(name: "thermostatMode", value: "off")
 	sendEvent(name: "thermostatFanMode", value: "fanAuto")
 	sendEvent(name: "thermostatOperatingState", value: "idle")
-	sendEvent(name: "humidity", value: 53, unit: "%")
 }
 
 def parse(String description) {
 }
 
 def evaluate(temp, heatingSetpoint, coolingSetpoint) {
-	log.debug "evaluate($temp, $heatingSetpoint, $coolingSetpoint"
+	log.debug "evaluate($temp, $heatingSetpoint, $coolingSetpoint)"
 	def threshold = 1.0
 	def current = device.currentValue("thermostatOperatingState")
 	def mode = device.currentValue("thermostatMode")
