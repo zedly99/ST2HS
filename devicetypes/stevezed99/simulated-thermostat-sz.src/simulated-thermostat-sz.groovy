@@ -26,6 +26,7 @@ metadata {
         command "setThermostatMode", ["string"]
         command "setThermostatFanMode", ["string"]
         command "setThermostatOperatingState", ["string"]
+        command "SetThermostatSetpoint", ["number"]
 	}
 
 tiles (scale:2) {
@@ -56,33 +57,33 @@ tiles (scale:2) {
 				state "cooling", label:'Operating',backgroundColor:"#269bd2",icon:"st.thermostat.cooling"
 			}
 
-			valueTile("heatingSetpoint", "device.heatingSetpoint", inactiveLabel: false, decoration: "flat") {
+			valueTile("heatingSetpoint", "device.heatingSetpoint", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 				state "heat", label:'${currentValue} heat', unit: "F", backgroundColor:"#ffffff"
 			}
             
-			standardTile("heatDown", "device.temperature", inactiveLabel: false, decoration: "flat") {
+			standardTile("heatDown", "device.heatingSetpoint", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 				state "default", label:'', action:"heatDown",icon:"st.thermostat.thermostat-down"
 			}
             
-			standardTile("heatUp", "device.temperature", inactiveLabel: false, decoration: "flat") {
+			standardTile("heatUp", "device.heatingSetpoint", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 				state "default", label:'', action:"heatUp", icon:"st.thermostat.thermostat-up"
 			}
 
-			valueTile("coolingSetpoint", "device.coolingSetpoint", inactiveLabel: false, decoration: "flat") {
+			valueTile("coolingSetpoint", "device.coolingSetpoint", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 				state "cool", label:'${currentValue} cool', unit:"F", backgroundColor:"#ffffff"
 			}
             
-			standardTile("coolDown", "device.temperature", inactiveLabel: false, decoration: "flat") {
+			standardTile("coolDown", "device.coolingSetpoint", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 				state "default", label:'', action:"coolDown",icon:"st.thermostat.thermostat-down"
 			}
 		
-        	standardTile("coolUp", "device.temperature", inactiveLabel: false, decoration: "flat") {
+        	standardTile("coolUp", "device.coolingSetpoint", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 				state "default", label:'', action:"coolUp", icon:"st.thermostat.thermostat-up"
 			}
 
 			standardTile("fanMode", "device.thermostatFanMode", inactiveLabel: false, decoration: "flat") {
-				state "fanAuto", label:'${name}', action:"thermostat.fanOn", backgroundColor:"#ffffff"
-				state "fanOn", label:'${name}', action:"thermostat.fanAuto", backgroundColor:"#ffffff"
+				state "fanAuto", label:'Auto', action:"thermostat.fanOn", backgroundColor:"#ffffff"
+				state "fanOn", label:'On', action:"thermostat.fanAuto", backgroundColor:"#ffffff"
 			}
          
 
@@ -146,18 +147,15 @@ def evaluate(temp, heatingSetpoint, coolingSetpoint) {
 def setHeatingSetpoint(int degreesF) {
 	log.debug "setHeatingSetpoint($degreesF)"
 	sendEvent(name: "heatingSetpoint", value: degreesF)
-	evaluate(device.currentValue("temperature"), degreesF, device.currentValue("coolingSetpoint"))
 }
 
 def setCoolingSetpoint(int degreesF) {
 	log.debug "setCoolingSetpoint($degreesF)"
 	sendEvent(name: "coolingSetpoint", value: degreesF)
-	evaluate(device.currentValue("temperature"), device.currentValue("heatingSetpoint"), degreesF)
 }
 
 def setThermostatMode(String value) {
 	sendEvent(name: "thermostatMode", value: value)
-	evaluate(device.currentValue("temperature"), device.currentValue("heatingSetpoint"), device.currentValue("coolingSetpoint"))
 }
 
 def setThermostatFanMode(String value) {
@@ -173,16 +171,6 @@ def off() {
 
 def heat() {
 	sendEvent(name: "thermostatMode", value: "heat")
-
-}
-
-def auto() {
-	sendEvent(name: "thermostatMode", value: "auto")
-	evaluate(device.currentValue("temperature"), device.currentValue("heatingSetpoint"), device.currentValue("coolingSetpoint"))
-}
-
-def emergencyHeat() {
-	sendEvent(name: "thermostatMode", value: "emergency heat")
 }
 
 def cool() {
@@ -197,32 +185,61 @@ def fanAuto() {
 	sendEvent(name: "thermostatFanMode", value: "fanAuto")
 }
 
-def fanCirculate() {
-	sendEvent(name: "thermostatFanMode", value: "fanCirculate")
-}
-
 def poll() {
 	null
 }
 
 def tempUp() {
-	def ts = device.currentState("temperature")
-	def value = ts ? ts.integerValue + 1 : 72
-	sendEvent(name:"temperature", value: value)
-	evaluate(value, device.currentValue("heatingSetpoint"), device.currentValue("coolingSetpoint"))
+	def currmode = device.currentState("thermostatMode")
+    switch(currmode) {
+    	case "heat":
+        	def temp = device.currentstate("heatingSetpoint")
+          	def value = temp ? temp.integerValue + 1 : 68
+			sendEvent(name:"heatingSetpoint", value: value)
+        	break
+        case "cool":
+        	def temp = device.currentstate("coolingSetpoint")
+          	def value = temp ? temp.integerValue + 1 : 68
+			sendEvent(name:"coolingSetpoint", value: value)
+        	break
+        case "off":
+        	break
+    }
+	sendEvent(name:"thermostatSetpoint", value: value)
 }
 
 def tempDown() {
-	def ts = device.currentState("temperature")
-	def value = ts ? ts.integerValue - 1 : 72
-	sendEvent(name:"temperature", value: value)
-	evaluate(value, device.currentValue("heatingSetpoint"), device.currentValue("coolingSetpoint"))
+	def currmode = device.currentState("thermostatMode")
+    switch(currmode) {
+    	case "heat":
+        	def temp = device.currentstate("heatingSetpoint")
+          	def value = temp ? temp.integerValue - 1 : 68
+			sendEvent(name:"heatingSetpoint", value: value)
+        	break
+        case "cool":
+        	def temp = device.currentstate("coolingSetpoint")
+          	def value = temp ? temp.integerValue - 1 : 68
+			sendEvent(name:"coolingSetpoint", value: value)
+        	break
+        case "off":
+        	break
+    }
+	sendEvent(name:"thermostatSetpoint", value: value)
 }
 
-def setTemperature(value) {
-	def ts = device.currentState("temperature")
-	sendEvent(name:"temperature", value: value)
-	evaluate(value, device.currentValue("heatingSetpoint"), device.currentValue("coolingSetpoint"))
+def SetThermostatSetpoint(value) {
+	def currmode = device.currentState("thermostatMode")
+    switch(currmode) {
+    	case "heat":
+			sendEvent(name:"heatingSetpoint", value: value)
+        	break
+        case "cool":
+			sendEvent(name:"coolingSetpoint", value: value)
+        	break
+        case "off":
+        	break
+    }
+	sendEvent(name:"thermostatSetpoint", value: value)
 }
 
 def heatUp() {
@@ -230,44 +247,24 @@ def heatUp() {
 	def ts = device.currentState("heatingSetpoint")
 	def value = ts ? ts.integerValue + 1 : 68
 	sendEvent(name:"heatingSetpoint", value: value)
-	evaluate(device.currentValue("temperature"), value, device.currentValue("coolingSetpoint"))
 }
 
 def heatDown() {
 	def ts = device.currentState("heatingSetpoint")
 	def value = ts ? ts.integerValue - 1 : 68
 	sendEvent(name:"heatingSetpoint", value: value)
-	evaluate(device.currentValue("temperature"), value, device.currentValue("coolingSetpoint"))
 }
-
 
 def coolUp() {
 	def ts = device.currentState("coolingSetpoint")
 	def value = ts ? ts.integerValue + 1 : 76
 	sendEvent(name:"coolingSetpoint", value: value)
-	evaluate(device.currentValue("temperature"), device.currentValue("heatingSetpoint"), value)
 }
 
 def coolDown() {
 	def ts = device.currentState("coolingSetpoint")
 	def value = ts ? ts.integerValue - 1 : 76
 	sendEvent(name:"coolingSetpoint", value: value)
-	evaluate(device.currentValue("temperature"), device.currentValue("heatingSetpoint"), value)
 }
 
-def switchMode() { 
-	log.debug "switchMode"
-	def currentMode = device.currentState("thermostatMode")?.value 
- 	def lastTriedMode = getDataByName("lastTriedMode") ?: currentMode ?: "off" 
- 	def supportedModes = getDataByName("supportedModes") 
- 	def modeOrder = modes() 
- 	def next = { modeOrder[modeOrder.indexOf(it) + 1] ?: modeOrder[0] } 
- 	def nextMode = next(lastTriedMode) 
- 	if (supportedModes?.contains(currentMode)) { 
- 		while (!supportedModes.contains(nextMode) && nextMode != "off") { 
- 			nextMode = next(nextMode) 
- 		} 
- 	} 
-     log.debug "Switching to mode: ${nextMode}" 
- 	switchToMode(nextMode) 
- } 
+ 
