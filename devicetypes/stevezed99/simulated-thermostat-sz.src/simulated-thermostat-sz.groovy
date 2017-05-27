@@ -26,7 +26,9 @@ metadata {
         command "setThermostatMode", ["string"]
         command "setThermostatFanMode", ["string"]
         command "setThermostatOperatingState", ["string"]
-        command "SetThermostatSetpoint", ["number"]
+        command "setThermostatSetpoint", ["number"]
+        command "setHeatingSetpoint", ["number"]
+        command "setCoolingSetpoint", ["number"]
 	}
 
 tiles (scale:2) {
@@ -144,12 +146,12 @@ def evaluate(temp, heatingSetpoint, coolingSetpoint) {
 	}
 }
 
-def setHeatingSetpoint(int degreesF) {
+def setHeatingSetpoint(float degreesF) {
 	log.debug "setHeatingSetpoint($degreesF)"
 	sendEvent(name: "heatingSetpoint", value: degreesF)
 }
 
-def setCoolingSetpoint(int degreesF) {
+def setCoolingSetpoint(float degreesF) {
 	log.debug "setCoolingSetpoint($degreesF)"
 	sendEvent(name: "coolingSetpoint", value: degreesF)
 }
@@ -191,25 +193,28 @@ def poll() {
 
 def tempUp() {
 	def currmode = device.currentState("thermostatMode")
+    log.debug "Current mode is &currmode"
     switch(currmode) {
     	case "heat":
         	def temp = device.currentstate("heatingSetpoint")
           	def value = temp ? temp.integerValue + 1 : 68
-			sendEvent(name:"heatingSetpoint", value: value)
+			sendEvent(name: "heatingSetpoint", value: value)
         	break
         case "cool":
         	def temp = device.currentstate("coolingSetpoint")
           	def value = temp ? temp.integerValue + 1 : 68
-			sendEvent(name:"coolingSetpoint", value: value)
+			sendEvent(name: "coolingSetpoint", value: value)
         	break
         case "off":
         	break
     }
-	sendEvent(name:"thermostatSetpoint", value: value)
+    log.debug "Setting temp up thermostatsetpoint to &value"
+	sendEvent(name: "thermostatSetpoint", value: value)
 }
 
 def tempDown() {
 	def currmode = device.currentState("thermostatMode")
+        log.debug "Current mode is &currmode"
     switch(currmode) {
     	case "heat":
         	def temp = device.currentstate("heatingSetpoint")
@@ -224,10 +229,11 @@ def tempDown() {
         case "off":
         	break
     }
+    log.debug "Setting temp up thermostatsetpoint to &value"
 	sendEvent(name:"thermostatSetpoint", value: value)
 }
 
-def SetThermostatSetpoint(value) {
+def setThermostatSetpoint(value) {
 	def currmode = device.currentState("thermostatMode")
     switch(currmode) {
     	case "heat":
@@ -267,4 +273,7 @@ def coolDown() {
 	sendEvent(name:"coolingSetpoint", value: value)
 }
 
+def setTemperature(value) {
+	sendEvent(name:"temperature", value: value)
+}
  
